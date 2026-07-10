@@ -1,5 +1,6 @@
 package src;
 
+import hxd.res.DynamicText;
 import hxd.Pad;
 import h2d.col.Point;
 import sys.ssl.Key;
@@ -18,14 +19,10 @@ enum Direction
     RIGHT;
 }
 
-enum State
-{
-    Walking;
-    Idle;
-}
 class Mario
 {
-    public var isSolid(get,null):Bool = true;
+   
+    private var direction:Int; //-1 left 1 right     
 
     private var obj:Object;
     private var game:Main;
@@ -40,16 +37,18 @@ class Mario
     
     private var velocity:Point;
 
-    private static inline var GRAVITY = 0.7;
-    private static inline var MOVE_SPEED = 2;
-    private static inline var RUN_SPEED = 5;
-    private static inline var JUMP_FORCE = -11;
+    private static inline var GRAVITY = 29.2;
+    private static inline var MOVE_SPEED = 83;
+    private static inline var RUN_SPEED = 150;
+    private static inline var JUMP_FORCE = -458;
     
     
     private var isOnGround:Bool;
-    
+
     private var canJump:Bool = true; 
+    public var isSolid(get,null):Bool = true;
     public var pad:Pad;
+    public var isMoving = false;
     
     
     public function new(x:Float, y:Float, parent:Object)
@@ -57,11 +56,11 @@ class Mario
         game = Main.inst;
         
         hxd.Pad.wait(onPad);
-        
+
         obj = new Object(parent);
         obj.x = x;
         obj.y = y;
-        
+
         velocity = new Point();
         
         var spritesheet = Res.mario_spritesheet.toTile();
@@ -79,10 +78,11 @@ class Mario
         jumpFrames = [animation_array[5]];
         anim = new Anim(idleFrames,12,obj);
 
-        
+        direction = 1; 
+         
     }
 
-   public function setAnimationState(state:String, facingRight:Bool) {
+   public function setAnimationState(state:String, direction:Int) {
         var targetFrames = idleFrames;
 
         switch(state) {
@@ -97,10 +97,15 @@ class Mario
             anim.play(targetFrames);
         }
 
-        //anim.speed = (state == "walk") ? 14 : 0;
+        //CHANGE THIS PIECE OF SHIT LATER :)))
+        if(direction > 1 || direction < -1 || direction ==0 )
+        {
+            hxd.System.reportError('Direction = $direction\nIt only can be 1 or -1' );
+        }
+        
 
-        anim.scaleX = facingRight ? 1.0 : -1.0;
-    
+        anim.scaleX = direction;
+
     }
 
     private function onPad(p:Pad)
@@ -118,91 +123,81 @@ class Mario
     }
     public function update(dt:Float)
     {
+        
         velocity.x = 0;
-
-        var isMoving = false;
-        var isfacingRight = anim.scaleX>0;
+        isMoving = false;
 
         if(hxd.Key.isDown(hxd.Key.LEFT))
         {
-            velocity.x = hxd.Key.isDown(hxd.Key.X) ? -RUN_SPEED : -MOVE_SPEED;
-            
-            isMoving = true;
-            isfacingRight = false;
-               
+            direction =-1;
+            move(direction,dt);
         }
         
         if(hxd.Key.isDown(hxd.Key.RIGHT))
         {
-            velocity.x = hxd.Key.isDown(hxd.Key.X) ? RUN_SPEED : MOVE_SPEED;
-            
-            isMoving = true;
-            isfacingRight = true;
+            direction = 1;
+            move(direction, dt);
         }
 
         if(hxd.Key.isPressed(hxd.Key.C) && isOnGround &&canJump )
         {
-            
-            velocity.y = JUMP_FORCE;
-            isOnGround = false;
-            canJump = false;
+            jump(dt);
         }
    
         if(hxd.Key.isReleased(hxd.Key.C) && velocity.y < 0)
         {
             velocity.y *= 0.5;
-            //isOnGround = false;
-            //canJump = false;
         }
    
         if(pad != null && pad.connected)
         {
             var conf = pad.config;
             var stickX = pad.values[conf.analogX];
-            
+            trace(stickX);
             if (Math.abs(stickX) > 0.3) 
             { 
-                velocity.x = hxd.Key.isDown(hxd.Key.X) ? stickX*RUN_SPEED : stickX* MOVE_SPEED;
-                isMoving = true;
-                isfacingRight = stickX > 0;
+                if(stickX >0.3)
+                {
+                    direction = 1;
+                }
+                else if(stickX<-0.3)
+                {
+                    direction = -1;
+                }
+                move(direction,dt);  
             }
 
-
-            
             if(pad.isDown(conf.A) && isOnGround ) {
-                velocity.y = JUMP_FORCE;
-                isOnGround = false;
+                jump(dt);
             }
 
             if(pad.isReleased(conf.A) && velocity.y <0)
             {
-                velocity.y = JUMP_FORCE*0.5;
-                isOnGround = false;
+                velocity.y *=0.5;
             }
         }
-        velocity.y += GRAVITY ; 
+        velocity.y += GRAVITY *dt; 
 
-        obj.x += velocity.x;
+        obj.x += velocity.x ;
         obj.y += velocity.y;
         
         if(obj.y >= 150)
         {
             obj.y = 150;
-            isOnGround = true;
-            canJump = true;
-            velocity.y= 0;            
+            onGround();         
         }
+
         if(isMoving && isOnGround)
         {
-            setAnimationState("walk",isfacingRight);
+            setAnimationState("walk",direction);
         }
         else if(!isOnGround)
         {
-            setAnimationState("jump", isfacingRight);
+            setAnimationState("jump", direction);
         }
         else
         {
-            setAnimationState("idle",isfacingRight);
+            setAnimationState("idle",direction);
         }
         
     }
@@ -212,5 +207,34 @@ class Mario
     function get_isSolid():Bool 
     {
         return isSolid;
+    }
+
+    private function move(dir:Float,dt:Float)
+    {
+        if(pad != null && pad.connected)
+        {
+            velocity.x = pad.isDown(pad.config.X) ? dir*RUN_SPEED * dt: dir*MOVE_SPEED*dt;
+        }
+        else
+        {
+            velocity.x = hxd.Key.isDown(hxd.Key.X) ? dir*RUN_SPEED * dt: dir*MOVE_SPEED*dt;
+        }
+        
+        isMoving = true;
+        
+    }
+
+    private function jump(dt:Float)
+    {
+        velocity.y = JUMP_FORCE*dt;
+        isOnGround = false;
+        canJump = false;
+    }
+
+    private function onGround()
+    {
+        isOnGround = true;
+        canJump = true;
+        velocity.y= 0;   
     }
 }
