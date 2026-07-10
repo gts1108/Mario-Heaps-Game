@@ -1,0 +1,7 @@
+-main src.Main
+-lib heaps
+-lib ldtk-haxe-api
+-lib deepnightlibs
+
+-dce full
+--debug

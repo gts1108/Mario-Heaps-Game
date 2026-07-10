@@ -1,0 +1,8 @@
+game.hxml
+-lib hlsdl
+
+-D windowTitle=Game
+-D windowSize=320x180
+-hl hl/game.hl
+
+run_dx_hl.hxml

@@ -1,0 +1,16 @@
+game.hxml
+
+-lib hldx
+-D dx12
+-D hl_ver=1.16.0
+
+-D windowTitle=Game
+-D windowSize=320x180
+-hl hl/game.hl
+
+run_dx_hl.hxml
+
+#-D hlgen.makefile=vs2026
+#-D hlgen.makefilepath=bin
+
+    
