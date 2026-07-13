@@ -4,10 +4,7 @@ class Const
 {
     public static inline var GRID = 16; 
     
-    public static var FPS(get,never) : Int;
-	
-    static inline function get_FPS() return Std.int( hxd.System.getDefaultFrameRate() );
-
+    public static var FPS: Int = 60;
     public static inline var WIDTH = 256; 
     public static inline var HEIGHT = 240;
 }

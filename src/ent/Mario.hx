@@ -5,7 +5,6 @@ import ent.Entity;
 import hxd.res.DynamicText;
 import hxd.Pad;
 import h2d.col.Point;
-import sys.ssl.Key;
 import h2d.Tile;
 import hxd.res.TiledMap;
 import h3d.Engine;
@@ -43,8 +42,8 @@ class Mario extends Entity
             mass: 1,
             shape: {
                 type:RECT,
-                width: Const.GRID,
-                height: Const.GRID
+                width: Const.GRID-10,
+                height: Const.GRID -2
             },
             elasticity: 0
         });
@@ -64,7 +63,7 @@ class Mario extends Entity
         walkFrames = [animation_array[1],animation_array[2],animation_array[3]];
         jumpFrames = [animation_array[5]];
         anim = new Anim(idleFrames,12,obj);
-
+        setVisualOffset(0, -1);
         direction = 1; 
     }
 
@@ -81,6 +80,13 @@ class Mario extends Entity
         if (currentFrames != targetFrames) {
             currentFrames = targetFrames;
             anim.play(targetFrames);
+        }
+
+        if (state == "walk") {
+            var speedRatio = Math.abs(body.velocity.x) / MOVE_SPEED;
+            anim.speed = 12 * speedRatio; // Leg movement scales with speed!
+        } else {
+            anim.speed = 12; // Default speed for jump/idle
         }
 
         //CHANGE THIS PIECE OF SHIT LATER :)))
@@ -179,8 +185,24 @@ class Mario extends Entity
             setAnimationState("idle",direction);
         }
 
-        trace(debugInfo());
         
+        if(this.body.x <=0 )
+        {
+            this.body.x = 0;
+            if(body.velocity.x < 0)
+            {
+                body.velocity.x = 0;
+            }
+        }
+        if(this.body.x >=Const.WIDTH )
+        {
+            this.body.x = Const.WIDTH;
+            if(body.velocity.x > 0)
+            {
+                body.velocity.x = 0;
+            }
+            
+        }
     }
 
     
@@ -210,6 +232,17 @@ class Mario extends Entity
     {
         //Add debug info to display/trace
 
-        return 'Body X: ${body.x}\nBody Y: ${body.y}\nisMoving: ${isMoving}\nisOnGround: ${isOnGround}';
+        return 'Body X: ${Math.round(body.x)}\n' +
+               'Body Y: ${Math.round(body.y)}\n' +
+               'Speed X: ${Math.round(body.velocity.x)}\n' +
+               'isMoving: ${isMoving}\n' +
+               'isOnGround: ${isOnGround}';
     }
+
+    public function setVisualOffset(dx:Float, dy:Float) {
+    if (anim != null) {
+        anim.x = dx;
+        anim.y = dy;
+    }
+}
 }

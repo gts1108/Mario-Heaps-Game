@@ -24,50 +24,56 @@ import hxd.Res;
 import ent.Mario;
 
 @:publicFields 
-class Main extends hxd.App {
+class Main extends hxd.App 
+{
+    
+    private var lastFrameTime:Float = 0.0;
 
     private var mario:Mario; 
     private var obj:Object;
     
 
-    public var scale:Int = 1; //320x180
+    //320x180
     private var bg:Bitmap;
-    static var inst:Main;
-
-    var currentScene:BaseScene;
-
+    public static var inst:Main;
+    public var isResizing:Bool = false;
     
+    var currentScene:BaseScene;
+    private var viewMask:h2d.Mask;    
     
     #if debug
     private var debugText:Text;
+    private var debugTextInfo:String;
     #end 
+    
+    
+    
     
     override function init() 
     {
         super.init();
-	   
-        trace(System.getDefaultFrameRate());
         
+        inst = this;
+		setFPS(120);
+        lastFrameTime = haxe.Timer.stamp();
+        hxd.Window.getInstance().vsync = false;
         
-       
         s2d.scaleMode = LetterBox(Const.WIDTH, Const.HEIGHT, true,Center,Center);
-    
+        //s2d.defaultSmooth = false;
+
         Image.DEFAULT_FILTER = Nearest;
-        switchScene(new LevelRenderTest());
+        
 
         #if debug
-        debugText = new Text(getFont(),s2d);
+        debugText = new Text(Global.getFont(),s2d);
         debugText.x = 10;
         debugText.y = 10;
 
         #end
+        Global.setWindowScale(Global.currentScale);
+        switchScene(new SettingsMenu());
     }
     
-    public static function getFont()
-    {
-        return DefaultFont.get();
-    }
-
     public function switchScene(newScene:BaseScene)
     {
         if(currentScene != null)
@@ -78,64 +84,81 @@ class Main extends hxd.App {
 
         currentScene = newScene;
 
-        this.setScene2D(currentScene);
+        if (viewMask == null) {
+            viewMask = new h2d.Mask(Const.WIDTH, Const.HEIGHT, s2d);
+            viewMask.x = 0;
+            viewMask.y = 0;
+        }
+
+        viewMask.addChild(currentScene);
+
+        #if debug
+        // 3. Always bring the debug text to the absolute top layer
+        if (debugText != null) {
+            s2d.addChild(debugText);
+        }
+        #end
 
     }
-
     override function update(dt:Float) 
     {
         super.update(dt);
         var currentFps = Math.round(hxd.Timer.fps());
-
-        //trace('FPS: ${currentFps}');
-
+        debugTextInfo = 'FPS: ${currentFps}\nCurrent Scene: ${currentScene}';
+        debugText.text = debugTextInfo;
         
-        #if debug
-        //var realMemory = MemoryMonitor.getRealMemoryMB();
-        //debugText.text = 'Real Memory Use: ${realMemory}';
-        
-        #end
-        
-        var scaleChanged = false;
         
         if (currentScene != null)
             currentScene.update(dt);
-        
-        /*
-        if(hxd.Key.isPressed(Key.UP))
-        {
-            scale++;
-            scaleChanged = true;
-
-        }
-        if(Key.isPressed(Key.DOWN))
-        {
-            scale--;
-            if(scale < 1) scale = 1;
-            scaleChanged = true;
-        }
-        
-        if(scaleChanged) 
-        {
-            s2d.scaleMode = Zoom(scale);
-            var win = @:privateAccess hxd.Window.getInstance();
-            win.resize(Const.WIDTH * scale, Const.HEIGHT * scale);
-        }
-        */
+       
         if(Key.isPressed(Key.ESCAPE))
         {
             System.exit();
         }
     }
     
+    
+    
     override function onResize() {
         super.onResize();
+
+        if(isResizing) return;
+
+        var window = hxd.Window.getInstance();
+
+        var targetWidth = Const.WIDTH * Global.currentScale;
+        var targetHeight = Const.HEIGHT * Global.currentScale;
+
+        if (window.width != targetWidth || window.height != targetHeight) {
+            isResizing = true;
+            window.resize(targetWidth, targetHeight);
+            isResizing = false;
+        }
     }
-    
+
+    override function mainLoop() 
+    {
+        var currentTime = haxe.Timer.stamp();
+        var elapsed = currentTime - lastFrameTime;
+        var minFrameTime = 1.0/Const.FPS;
+        
+        if (elapsed < minFrameTime) {
+            var sleepTime = minFrameTime - elapsed;
+            Sys.sleep(sleepTime);
+        }
+        lastFrameTime = haxe.Timer.stamp();
+        super.mainLoop();
+    }
+
+    public static function setFPS(newFPS:Int)
+    {
+        Const.FPS = newFPS;
+    }
+
     static function main() 
     {
-        Res.initEmbed();    
-        inst = new Main();
+        Res.initEmbed();
+        new Main();    
     }
     
 }

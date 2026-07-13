@@ -14,12 +14,7 @@ class BaseScene extends Scene
 
     public function new()
     {
-        super();
-
-        #if debug
-
-        #end
-        
+        super();        
     }
     public function update(dt:Float)
     {

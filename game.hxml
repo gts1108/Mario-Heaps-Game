@@ -11,3 +11,6 @@
 --debug
 -D hl-gen-code
 --macro echo.Macros.add_data("entity", "ent.Entity")
+
+-D windowTitle=Game
+-D windowSize=256x240

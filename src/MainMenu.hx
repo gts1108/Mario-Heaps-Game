@@ -25,9 +25,10 @@ class MainMenu extends BaseScene
     override function update(dt:Float) {
         super.update(dt);
 
-        //text.scale(Main.inst.scale);
-        if (hxd.Key.isPressed(hxd.Key.MOUSE_LEFT)) {
+        /*
+        if (hxd.Key.isPressed(hxd.Key.ENTER)) {
             Main.inst.switchScene(new GameScene());
         }
+            */
     }
 }
