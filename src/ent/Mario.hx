@@ -1,5 +1,7 @@
-package src;
+package ent;
 
+
+import ent.Entity;
 import hxd.res.DynamicText;
 import hxd.Pad;
 import h2d.col.Point;
@@ -19,53 +21,38 @@ enum Direction
     RIGHT;
 }
 
-class Mario
+class Mario extends Entity
 {
-   
-    private var direction:Int; //-1 left 1 right     
-
-    private var obj:Object;
-    private var game:Main;
-    
-    private var anim:Anim;
-    
+       
     private var idleFrames:Array<Tile>;
     private var walkFrames:Array<Tile>;
     private var jumpFrames:Array<Tile>;
     private var currentFrames:Array<Tile>;
 
-    
-    private var velocity:Point;
-
-    private static inline var GRAVITY = 29.2;
-    private static inline var MOVE_SPEED = 83;
+    private static inline var MOVE_SPEED = 90;
     private static inline var RUN_SPEED = 150;
-    private static inline var JUMP_FORCE = -458;
+    private static inline var JUMP_FORCE = -270;
     
-    
-    private var isOnGround:Bool;
-
-    private var canJump:Bool = true; 
-    public var isSolid(get,null):Bool = true;
     public var pad:Pad;
-    public var isMoving = false;
-    
-    
+
     public function new(x:Float, y:Float, parent:Object)
     {
-        game = Main.inst;
-        
+        super(x,y,parent, {
+            x:x,
+            y:y,
+            mass: 1,
+            shape: {
+                type:RECT,
+                width: Const.GRID,
+                height: Const.GRID
+            },
+            elasticity: 0
+        });
         hxd.Pad.wait(onPad);
 
-        obj = new Object(parent);
-        obj.x = x;
-        obj.y = y;
-
-        velocity = new Point();
-        
         var spritesheet = Res.mario_spritesheet.toTile();
 
-        var animation_array:Array<Tile> = spritesheet.gridFlatten(16);
+        var animation_array:Array<Tile> = spritesheet.gridFlatten(Const.GRID);
         
         for(tile in animation_array)
         {
@@ -79,10 +66,9 @@ class Mario
         anim = new Anim(idleFrames,12,obj);
 
         direction = 1; 
-         
     }
 
-   public function setAnimationState(state:String, direction:Int) {
+    public function setAnimationState(state:String, direction:Int) {
         var targetFrames = idleFrames;
 
         switch(state) {
@@ -121,11 +107,14 @@ class Mario
 		
 		}
     }
-    public function update(dt:Float)
+    override function update(dt:Float)
     {
-        
-        velocity.x = 0;
         isMoving = false;
+        
+        if (!hxd.Key.isDown(hxd.Key.LEFT) && !hxd.Key.isDown(hxd.Key.RIGHT) && (pad == null || Math.abs(pad.values[pad.config.analogX]) <= 0.3)) {
+           body.velocity.x *= 0.5; 
+            if (Math.abs(body.velocity.x) < 1) body.velocity.x = 0;
+        }
 
         if(hxd.Key.isDown(hxd.Key.LEFT))
         {
@@ -139,21 +128,21 @@ class Mario
             move(direction, dt);
         }
 
-        if(hxd.Key.isPressed(hxd.Key.C) && isOnGround &&canJump )
+        if(hxd.Key.isPressed(hxd.Key.C) && isOnGround)
         {
             jump(dt);
         }
    
-        if(hxd.Key.isReleased(hxd.Key.C) && velocity.y < 0)
+        if(hxd.Key.isReleased(hxd.Key.C) && body.velocity.y < 0)
         {
-            velocity.y *= 0.5;
+            body.velocity.y *= 0.5;
         }
    
         if(pad != null && pad.connected)
         {
             var conf = pad.config;
             var stickX = pad.values[conf.analogX];
-            trace(stickX);
+            
             if (Math.abs(stickX) > 0.3) 
             { 
                 if(stickX >0.3)
@@ -171,20 +160,10 @@ class Mario
                 jump(dt);
             }
 
-            if(pad.isReleased(conf.A) && velocity.y <0)
+            if(pad.isReleased(conf.A) && body.velocity.y <0)
             {
-                velocity.y *=0.5;
+                body.velocity.y *=0.5;
             }
-        }
-        velocity.y += GRAVITY *dt; 
-
-        obj.x += velocity.x ;
-        obj.y += velocity.y;
-        
-        if(obj.y >= 150)
-        {
-            obj.y = 150;
-            onGround();         
         }
 
         if(isMoving && isOnGround)
@@ -199,25 +178,21 @@ class Mario
         {
             setAnimationState("idle",direction);
         }
+
+        trace(debugInfo());
         
     }
 
     
-
-    function get_isSolid():Bool 
-    {
-        return isSolid;
-    }
-
     private function move(dir:Float,dt:Float)
     {
         if(pad != null && pad.connected)
         {
-            velocity.x = pad.isDown(pad.config.X) ? dir*RUN_SPEED * dt: dir*MOVE_SPEED*dt;
+            body.velocity.x = pad.isDown(pad.config.X) ? dir*RUN_SPEED : dir*MOVE_SPEED;
         }
         else
         {
-            velocity.x = hxd.Key.isDown(hxd.Key.X) ? dir*RUN_SPEED * dt: dir*MOVE_SPEED*dt;
+            body.velocity.x = hxd.Key.isDown(hxd.Key.X) ? dir*RUN_SPEED : dir*MOVE_SPEED;
         }
         
         isMoving = true;
@@ -226,15 +201,15 @@ class Mario
 
     private function jump(dt:Float)
     {
-        velocity.y = JUMP_FORCE*dt;
+        body.velocity.y = JUMP_FORCE;
         isOnGround = false;
-        canJump = false;
+        
     }
 
-    private function onGround()
+    public function debugInfo():String
     {
-        isOnGround = true;
-        canJump = true;
-        velocity.y= 0;   
+        //Add debug info to display/trace
+
+        return 'Body X: ${body.x}\nBody Y: ${body.y}\nisMoving: ${isMoving}\nisOnGround: ${isOnGround}';
     }
 }

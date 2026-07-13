@@ -1,6 +1,8 @@
-package src;
+package;
     
 
+
+//import utils.MemoryMonitor;
 import hxd.Timer;
 import h2d.filter.Filter;
 import h2d.filter.Filter;
@@ -19,14 +21,14 @@ import hxd.Window;
 import h2d.Scene.ScaleMode;
 import hxd.res.Font;
 import hxd.Res;
+import ent.Mario;
 
 @:publicFields 
 class Main extends hxd.App {
 
     private var mario:Mario; 
     private var obj:Object;
-    private var width = 320;    
-    private var height = 180;
+    
 
     public var scale:Int = 1; //320x180
     private var bg:Bitmap;
@@ -35,47 +37,30 @@ class Main extends hxd.App {
     var currentScene:BaseScene;
 
     
-    var text:Text;
-
+    
+    #if debug
+    private var debugText:Text;
+    #end 
+    
     override function init() 
     {
         super.init();
 	   
         trace(System.getDefaultFrameRate());
-        Timer.wantedFPS = 120;
         
-        s2d.scaleMode = LetterBox(width, height, true,Center,Center);
+        
+       
+        s2d.scaleMode = LetterBox(Const.WIDTH, Const.HEIGHT, true,Center,Center);
     
         Image.DEFAULT_FILTER = Nearest;
         switchScene(new LevelRenderTest());
-        /*
-        bg = new h2d.Bitmap(h2d.Tile.fromColor(0x333333), s2d);
-    
-        bg.x = 0;
-        bg.y = 0;
-        bg.scaleX = s2d.width;
-        bg.scaleY = s2d.height;
 
-        
-        obj = new Object(s2d);
-        obj.x = Std.int(s2d.width / 2);
-        obj.y = Std.int(s2d.height / 2);
+        #if debug
+        debugText = new Text(getFont(),s2d);
+        debugText.x = 10;
+        debugText.y = 10;
 
-
-
-        var tile = Tile.fromColor(0xFF0000,25,25,1);
-        tile = tile.center();
-
-        //var bitmap = new Bitmap(tile,obj);
-        
-        text = new Text(getFont(), obj);
-        text.text = "Hello, heaps";
-        text.color = new Vector4(255,255,255);
-
-        
-        mario = new Mario(100,50);
-        */
-        
+        #end
     }
     
     public static function getFont()
@@ -100,11 +85,23 @@ class Main extends hxd.App {
     override function update(dt:Float) 
     {
         super.update(dt);
+        var currentFps = Math.round(hxd.Timer.fps());
+
+        //trace('FPS: ${currentFps}');
+
+        
+        #if debug
+        //var realMemory = MemoryMonitor.getRealMemoryMB();
+        //debugText.text = 'Real Memory Use: ${realMemory}';
+        
+        #end
         
         var scaleChanged = false;
+        
         if (currentScene != null)
             currentScene.update(dt);
         
+        /*
         if(hxd.Key.isPressed(Key.UP))
         {
             scale++;
@@ -122,9 +119,9 @@ class Main extends hxd.App {
         {
             s2d.scaleMode = Zoom(scale);
             var win = @:privateAccess hxd.Window.getInstance();
-            win.resize(width * scale, height * scale);
+            win.resize(Const.WIDTH * scale, Const.HEIGHT * scale);
         }
-        
+        */
         if(Key.isPressed(Key.ESCAPE))
         {
             System.exit();

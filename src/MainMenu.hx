@@ -1,4 +1,4 @@
-package src;
+package;
 
 import haxe.Template;
 import h2d.Text;

@@ -1,7 +1,13 @@
--main src.Main
+-cp src
+-main Main
 -lib heaps
 -lib ldtk-haxe-api
 -lib deepnightlibs
-
+-lib echo
+-lib hlopenal
+-D ECHO_USE_HEAPS
+-D dump=pretty
 -dce full
 --debug
+-D hl-gen-code
+--macro echo.Macros.add_data("entity", "ent.Entity")
