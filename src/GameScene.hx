@@ -1,5 +1,6 @@
 package;
 
+import hxd.Res;
 import h2d.Graphics;
 import h2d.RenderContext;
 import h2d.Text;
@@ -28,7 +29,7 @@ class GameScene extends BaseScene
         super();
 
         p = new Data();
-
+        music = Res.Stressed.play(true);
         debugGraphics = new Graphics(this);
 
         var level = p.all_worlds.Default.all_levels.Level_0;

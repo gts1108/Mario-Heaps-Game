@@ -3,6 +3,8 @@ package;
 
 
 //import utils.MemoryMonitor;
+import hxd.snd.Manager;
+import hxd.Event;
 import hxd.Timer;
 import h2d.filter.Filter;
 import h2d.filter.Filter;
@@ -68,8 +70,26 @@ class Main extends hxd.App
         debugText = new Text(Global.getFont(),s2d);
         debugText.x = 10;
         debugText.y = 10;
-
         #end
+
+        hxd.snd.Manager.get();
+		hxd.Timer.skip(); // needed to ignore heavy Sound manager init frame
+        hxd.Window.getInstance().onClose = function(){
+            try
+            {
+                trace("Clean up audio before exiting and shit");
+                Manager.get().stopAll();
+                Manager.get().suspended = true;
+                Manager.get().dispose();
+            }
+            catch(e:Dynamic)
+            {
+                trace("Audio clean up failed: "+ e);
+            }
+            return true;
+        };
+
+        
         Global.setWindowScale(Global.currentScale);
         switchScene(new SettingsMenu());
     }
@@ -149,7 +169,7 @@ class Main extends hxd.App
         lastFrameTime = haxe.Timer.stamp();
         super.mainLoop();
     }
-
+    
     public static function setFPS(newFPS:Int)
     {
         Const.FPS = newFPS;

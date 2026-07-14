@@ -1,5 +1,7 @@
 package;
 
+import hxd.Res;
+import hxd.snd.Channel;
 import h2d.Interactive;
 import hxd.Key;
 import hxsl.Types.Texture;
@@ -9,10 +11,14 @@ class SettingsMenu extends BaseScene
 {
     var text:Text;
     var setting_scale:Text;
+    
 
     public function new()
     {
         super();
+
+        music = hxd.Res.december.play(true);
+        
         text = new Text(Global.getFont(),this);
         text.text = "SETTINGS";
 
