@@ -6,11 +6,15 @@
 -lib echo
 -lib hlopenal
 -D ECHO_USE_HEAPS
--D dump=pretty
--dce full
---debug
--D hl-gen-code
+#-D dump=pretty
+
 --macro echo.Macros.add_data("entity", "ent.Entity")
 
 -D windowTitle=Game
 -D windowSize=256x240
+
+
+-dce full
+--debug
+-D hl-gen-code
+-D hl-profile

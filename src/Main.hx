@@ -1,43 +1,32 @@
 package;
-    
 
-
-//import utils.MemoryMonitor;
+import scenes.GameScene;
+import scenes.UIScene;
+import scenes.MainMenu;
+import hxd.res.DefaultFont;
+import scenes.SettingsMenu;
+import hxd.Key;
+import haxe.EnumFlags;
+import hl.Profile;
 import hxd.snd.Manager;
 import hxd.Event;
-import hxd.Timer;
-import h2d.filter.Filter;
-import h2d.filter.Filter;
-import hxd.res.Image;
-import hxd.System;
-import hxd.Key;
 import h2d.Scene.ScaleModeAlign;
-import h3d.Vector4;
 import h2d.Text;
-import hxd.res.DefaultFont;
-import h2d.Bitmap;
 import hxd.fmt.grd.Data.Color;
-import h2d.Tile;
-import h2d.Object;
 import hxd.Window;
 import h2d.Scene.ScaleMode;
-import hxd.res.Font;
 import hxd.Res;
 import ent.Mario;
 
 @:publicFields 
 class Main extends hxd.App 
 {
+	public static var inst(default, null):Main;
     
     private var lastFrameTime:Float = 0.0;
 
-    private var mario:Mario; 
-    private var obj:Object;
-    
-
     //320x180
-    private var bg:Bitmap;
-    public static var inst:Main;
+    
     public var isResizing:Bool = false;
     
     var currentScene:BaseScene;
@@ -47,9 +36,6 @@ class Main extends hxd.App
     private var debugText:Text;
     private var debugTextInfo:String;
     #end 
-    
-    
-    
     
     override function init() 
     {
@@ -61,13 +47,12 @@ class Main extends hxd.App
         hxd.Window.getInstance().vsync = false;
         
         s2d.scaleMode = LetterBox(Const.WIDTH, Const.HEIGHT, true,Center,Center);
-        //s2d.defaultSmooth = false;
-
-        Image.DEFAULT_FILTER = Nearest;
+        
+        
         
 
         #if debug
-        debugText = new Text(Global.getFont(),s2d);
+        debugText = new Text(DefaultFont.get(),s2d);
         debugText.x = 10;
         debugText.y = 10;
         #end
@@ -88,10 +73,13 @@ class Main extends hxd.App
             }
             return true;
         };
-
         
-        Global.setWindowScale(Global.currentScale);
-        switchScene(new SettingsMenu());
+        
+        hxd.snd.Manager.get().masterVolume = 0;
+        
+        G.setWindowScale(G.currentScale);
+
+        switchScene(new MainMenu());
     }
     
     public function switchScene(newScene:BaseScene)
@@ -113,7 +101,6 @@ class Main extends hxd.App
         viewMask.addChild(currentScene);
 
         #if debug
-        // 3. Always bring the debug text to the absolute top layer
         if (debugText != null) {
             s2d.addChild(debugText);
         }
@@ -124,17 +111,48 @@ class Main extends hxd.App
     {
         super.update(dt);
         var currentFps = Math.round(hxd.Timer.fps());
-        debugTextInfo = 'FPS: ${currentFps}\nCurrent Scene: ${currentScene}';
-        debugText.text = debugTextInfo;
+        //debugTextInfo = 'FPS: ${currentFps}\nCurrent Scene: ${currentScene}';
+        //debugText.text = debugTextInfo;
         
         
         if (currentScene != null)
             currentScene.update(dt);
-       
-        if(Key.isPressed(Key.ESCAPE))
+
+
+        if(Key.isPressed(Key.F11))
         {
-            System.exit();
+            var win = Window.getInstance();
+            if (win.displayMode == Fullscreen || win.displayMode == Borderless) 
+            {
+                
+                win.displayMode = Windowed;
+                G.currentScale = G.savedCurrentScale;
+
+                win.resize(Const.WIDTH * G.currentScale, Const.HEIGHT * G.currentScale);
+            } 
+            else {
+                G.savedCurrentScale = G.currentScale;
+
+                G.currentScale = 1;
+
+                win.displayMode = Borderless; 
+            }
         }
+
+        if(Window.getInstance().displayMode == Borderless)
+        {
+            G.currentScale = 1;
+        }
+
+        /*
+        if(hxd.Key.isDown(hxd.Key.P))
+        {
+            trace(" ---STARTING PROFILING ---");
+
+            hl.Profile.dump("global_track.dump", true, true);
+            trace("Profile successfully saved to project folder as 'global_track.dump'!");
+        }
+            */
     }
     
     
@@ -146,13 +164,25 @@ class Main extends hxd.App
 
         var window = hxd.Window.getInstance();
 
-        var targetWidth = Const.WIDTH * Global.currentScale;
-        var targetHeight = Const.HEIGHT * Global.currentScale;
+        var targetWidth = Const.WIDTH * G.currentScale;
+        var targetHeight = Const.HEIGHT * G.currentScale;
 
-        if (window.width != targetWidth || window.height != targetHeight) {
-            isResizing = true;
-            window.resize(targetWidth, targetHeight);
-            isResizing = false;
+        if (window.displayMode == Windowed) 
+        {
+            var targetWidth = Const.WIDTH * G.currentScale;
+            var targetHeight = Const.HEIGHT * G.currentScale;
+
+            if (window.width != targetWidth || window.height != targetHeight) {
+                isResizing = true;
+                window.resize(targetWidth, targetHeight);
+                isResizing = false;
+            }  
+        } 
+        else 
+        {
+            if(G.currentScale != 1) {
+                G.currentScale = 1;
+            }
         }
     }
 
@@ -173,6 +203,19 @@ class Main extends hxd.App
     public static function setFPS(newFPS:Int)
     {
         Const.FPS = newFPS;
+    }
+
+
+    private function setProfile()
+    {
+        var flags = new EnumFlags<hl.Profile.TrackKind>();
+        flags.set(TrackKind.Alloc);
+        flags.set(TrackKind.Cast);
+        flags.set(TrackKind.DynField);
+        flags.set(TrackKind.DynCall);
+
+        Profile.globalBits = flags;
+        Profile.restart();
     }
 
     static function main() 

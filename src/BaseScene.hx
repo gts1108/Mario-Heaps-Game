@@ -12,11 +12,13 @@ import h2d.Scene;
 class BaseScene extends Scene
 {
     public var entities:Array<ent.Entity> = [];
-    public var music:Channel;
-
+    private var music:Channel;
+    //public static var instance:BaseScene;
+    
     public function new()
     {
         super();        
+
     }
     public function update(dt:Float)
     {
@@ -25,9 +27,9 @@ class BaseScene extends Scene
 
     override function dispose() {
         super.dispose();
-        music.sound.stop();
-        music.sound.dispose();
-        music = null;
+        //music.sound.stop();
+        //music.sound.dispose();
+        //music = null;
         
     }
 }

@@ -1,6 +1,7 @@
 package ent;
 
 
+import h2d.Camera;
 import ent.Entity;
 import hxd.res.DynamicText;
 import hxd.Pad;
@@ -20,19 +21,35 @@ enum Direction
     RIGHT;
 }
 
+enum MarioStates
+{
+    NORMAL;
+    GROWN;
+    STAR;
+    GLITCHED;//Cool easter egg later
+}
+
 class Mario extends Entity
 {
        
     private var idleFrames:Array<Tile>;
     private var walkFrames:Array<Tile>;
     private var jumpFrames:Array<Tile>;
-    private var currentFrames:Array<Tile>;
+    private var deadFrames:Array<Tile>;
 
+    private var currentFrames:Array<Tile>;
+    private var currentAnimState:String;
+    private var lastAnimSpeed:Float = -1.0;
+    
     private static inline var MOVE_SPEED = 90;
     private static inline var RUN_SPEED = 150;
-    private static inline var JUMP_FORCE = -270;
+    private static inline var JUMP_FORCE = -365;
+    private static inline var ACCELERATION_RATE:Float = 300.0; 
+    private static inline var FRICTION_RATE:Float = 400.0;
     
+
     public var pad:Pad;
+    
 
     public function new(x:Float, y:Float, parent:Object)
     {
@@ -42,14 +59,20 @@ class Mario extends Entity
             mass: 1,
             shape: {
                 type:RECT,
-                width: Const.GRID-10,
-                height: Const.GRID -2
+                width: Const.GRID-12,
+                height: Const.GRID  
             },
-            elasticity: 0
+            material: {
+                friction: 0,
+                elasticity: 0
+            },
+            drag_x: 0,
+            drag_y: 0
         });
-        hxd.Pad.wait(onPad);
+        
+        //hxd.Pad.wait(onPad);
 
-        var spritesheet = Res.mario_spritesheet.toTile();
+        var spritesheet = Res.Sprites.mario_spritesheet.toTile();
 
         var animation_array:Array<Tile> = spritesheet.gridFlatten(Const.GRID);
         
@@ -62,9 +85,18 @@ class Mario extends Entity
         idleFrames = [animation_array[0]];
         walkFrames = [animation_array[1],animation_array[2],animation_array[3]];
         jumpFrames = [animation_array[5]];
+        deadFrames = [animation_array[6]];
+        
+        isMoving = false;
+        direction = 1;
+        
+        currentFrames = idleFrames;
+        currentAnimState = "idle";
+
         anim = new Anim(idleFrames,12,obj);
-        setVisualOffset(0, -1);
-        direction = 1; 
+        
+        //setVisualOffset(0, -1);
+        
     }
 
     public function setAnimationState(state:String, direction:Int) {
@@ -74,6 +106,7 @@ class Mario extends Entity
             case "walk":  targetFrames = walkFrames;
             case "jump":  targetFrames = jumpFrames;
             case "idle":  targetFrames = idleFrames;
+            case "dead":  targetFrames = deadFrames;
             default:      targetFrames = idleFrames;
         }
 
@@ -82,20 +115,11 @@ class Mario extends Entity
             anim.play(targetFrames);
         }
 
-        if (state == "walk") {
-            var speedRatio = Math.abs(body.velocity.x) / MOVE_SPEED;
-            anim.speed = 12 * speedRatio; // Leg movement scales with speed!
-        } else {
-            anim.speed = 12; // Default speed for jump/idle
-        }
-
-        //CHANGE THIS PIECE OF SHIT LATER :)))
-        if(direction > 1 || direction < -1 || direction ==0 )
-        {
-            hxd.System.reportError('Direction = $direction\nIt only can be 1 or -1' );
-        }
         
-
+        if (direction > 1 || direction < -1 || direction == 0) {
+            var errorMsg = 'Direction = ' + direction + '\nIt only can be 1 or -1';
+            hxd.System.reportError(errorMsg);
+        }
         anim.scaleX = direction;
 
     }
@@ -115,108 +139,112 @@ class Mario extends Entity
     }
     override function update(dt:Float)
     {
-        isMoving = false;
-        
-        if (!hxd.Key.isDown(hxd.Key.LEFT) && !hxd.Key.isDown(hxd.Key.RIGHT) && (pad == null || Math.abs(pad.values[pad.config.analogX]) <= 0.3)) {
-           body.velocity.x *= 0.5; 
-            if (Math.abs(body.velocity.x) < 1) body.velocity.x = 0;
-        }
 
-        if(hxd.Key.isDown(hxd.Key.LEFT))
-        {
-            direction =-1;
-            move(direction,dt);
-        }
+        super.update(dt);
         
-        if(hxd.Key.isDown(hxd.Key.RIGHT))
+        if(!isDead)
         {
-            direction = 1;
-            move(direction, dt);
-        }
-
-        if(hxd.Key.isPressed(hxd.Key.C) && isOnGround)
-        {
-            jump(dt);
-        }
-   
-        if(hxd.Key.isReleased(hxd.Key.C) && body.velocity.y < 0)
-        {
-            body.velocity.y *= 0.5;
-        }
-   
-        if(pad != null && pad.connected)
-        {
-            var conf = pad.config;
-            var stickX = pad.values[conf.analogX];
+            var moveInput = 0;
+            if(hxd.Key.isDown(hxd.Key.LEFT)) { moveInput = -1; }
+            if(hxd.Key.isDown(hxd.Key.RIGHT)){ moveInput =  1; }
             
-            if (Math.abs(stickX) > 0.3) 
-            { 
-                if(stickX >0.3)
+            
+            var padConnected = (pad != null && pad.connected);
+            if(padConnected)
+            {
+                var stickX = pad.values[pad.config.analogX];
+                if (Math.abs(stickX) > 0.3) 
                 {
-                    direction = 1;
+                    moveInput = stickX > 0 ? 1 : -1;
                 }
-                else if(stickX<-0.3)
+            }
+            if(moveInput != 0)
+            {
+                direction = moveInput > 0 ? 1 : -1;
+                move(direction,dt, padConnected);
+            }
+            
+            else
+            {
+                if (body.velocity.x > 0) 
                 {
-                    direction = -1;
+                    body.velocity.x -= FRICTION_RATE ;
+                    if (body.velocity.x < 0) body.velocity.x = 0;
                 }
-                move(direction,dt);  
+                else if (body.velocity.x < 0) 
+                {
+                    body.velocity.x += FRICTION_RATE ;
+                    if (body.velocity.x > 0) body.velocity.x = 0;
+                }
+            }
+        
+        
+            var jumpPressed = hxd.Key.isPressed(hxd.Key.C);
+            var jumpReleased = hxd.Key.isReleased(hxd.Key.C);
+            
+            if (padConnected) 
+            {
+                if (pad.isPressed(pad.config.A)) jumpPressed = true;
+                if (pad.isReleased(pad.config.A)) jumpReleased = true;
             }
 
-            if(pad.isDown(conf.A) && isOnGround ) {
+            if (jumpPressed && isOnGround)
+            {
                 jump(dt);
             }
-
-            if(pad.isReleased(conf.A) && body.velocity.y <0)
+        
+            if (jumpReleased && body.velocity.y < 0)
             {
-                body.velocity.y *=0.5;
+                body.velocity.y *= 0.5;
+            }
+
+
+        }
+      
+        if (isDead)
+        {
+            setAnimationState("dead", direction);
+        }
+        else if (isOnGround)
+        {
+            
+            if (Math.abs(body.velocity.x) > 2.0)
+            {
+                setAnimationState("walk", direction);
+            }
+            else
+            {
+                setAnimationState("idle", direction);
             }
         }
-
-        if(isMoving && isOnGround)
-        {
-            setAnimationState("walk",direction);
-        }
-        else if(!isOnGround)
+        else 
         {
             setAnimationState("jump", direction);
         }
-        else
-        {
-            setAnimationState("idle",direction);
-        }
-
-        
-        if(this.body.x <=0 )
-        {
-            this.body.x = 0;
-            if(body.velocity.x < 0)
-            {
-                body.velocity.x = 0;
-            }
-        }
-        if(this.body.x >=Const.WIDTH )
-        {
-            this.body.x = Const.WIDTH;
-            if(body.velocity.x > 0)
-            {
-                body.velocity.x = 0;
-            }
-            
-        }
     }
-
     
-    private function move(dir:Float,dt:Float)
+
+    private function move(dir:Float,dt:Float,padConnected:Bool)
     {
-        if(pad != null && pad.connected)
+
+        var isRunning:Bool= true;
+
+        if(padConnected)
         {
-            body.velocity.x = pad.isDown(pad.config.X) ? dir*RUN_SPEED : dir*MOVE_SPEED;
+            isRunning = pad.isDown(pad.config.X);
         }
         else
         {
-            body.velocity.x = hxd.Key.isDown(hxd.Key.X) ? dir*RUN_SPEED : dir*MOVE_SPEED;
+            isRunning = hxd.Key.isDown(hxd.Key.X);
         }
         
+        var targetMaxSpeed = isRunning ? RUN_SPEED: MOVE_SPEED;
+
+
+        body.velocity.x += dir * ACCELERATION_RATE ;
+
+        
+        body.velocity.x = hxd.Math.clamp(body.velocity.x, -targetMaxSpeed, targetMaxSpeed);
         isMoving = true;
         
     }
@@ -230,8 +258,6 @@ class Mario extends Entity
 
     public function debugInfo():String
     {
-        //Add debug info to display/trace
-
         return 'Body X: ${Math.round(body.x)}\n' +
                'Body Y: ${Math.round(body.y)}\n' +
                'Speed X: ${Math.round(body.velocity.x)}\n' +
@@ -240,9 +266,13 @@ class Mario extends Entity
     }
 
     public function setVisualOffset(dx:Float, dy:Float) {
-    if (anim != null) {
-        anim.x = dx;
-        anim.y = dy;
+        if (anim != null) {
+            anim.x = dx;
+            anim.y = dy;
+        }
     }
+
+    
 }
-}
+
+

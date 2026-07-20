@@ -9,6 +9,8 @@ import hxd.Pad;
 
 class Entity
 {
+
+    public var isDead:Bool;
     private var sprite:Bitmap;
 
     private var direction:Int; //-1 left 1 right     
@@ -32,6 +34,8 @@ class Entity
         body = new Body(bodyOptions);
 
         body.entity = this;
+
+        isDead = false;
         
     }
 
@@ -40,18 +44,12 @@ class Entity
     public function update(dt:Float)
     {
         if(disposed)return;
-    }
-
-    public function syncVisuals()
-    {
-        if (disposed || body == null) return;
-
+        if(isDead) return;
         if (obj.x != body.x) obj.x = body.x;
         if (obj.y != body.y) obj.y = body.y;
         if (obj.rotation != body.rotation) obj.rotation = body.rotation;
     }
-
-
+    
     public function dispose()
     {
        if (disposed) return;
@@ -68,5 +66,14 @@ class Entity
 
         disposed = true;
         
+    }
+
+    public function dead()
+    {
+        isDead = true;
+        body.velocity.x = 0;
+        body.velocity.y = 0;
+        body.acceleration.x = 0;
+        body.acceleration.y = 0;
     }
 }
