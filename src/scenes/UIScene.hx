@@ -38,7 +38,7 @@ class UIScene extends BaseScene
     private var time_count_text:Text;
 
     private var timeAccumulator:Float = 0.0;
-    private var isInGame:Bool;
+    private var isInGame:Bool = false;
 
     public function new()
     {
@@ -135,6 +135,9 @@ class UIScene extends BaseScene
         mario_points_text.text = StringTools.lpad(Std.string(G.points), "0", 6);        
         coin_text.text = "x" + StringTools.lpad(Std.string(G.coinCount), "0", 2);
         time_count_text.text = StringTools.lpad(Std.string(G.time), "0", 3);
+
+        
+
         if(isInGame)
         {
             if(G.time > 0)
@@ -153,5 +156,7 @@ class UIScene extends BaseScene
                 G.time = 0;
             }
         }
+
+        
     }
 }

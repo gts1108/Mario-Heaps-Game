@@ -41,6 +41,8 @@ class GameScene extends UIScene
     override function init() {
         super.init();
 
+        this.isInGame = true;
+
         p = new Data();
          
         //music = Res.Stressed.play(true);
@@ -195,8 +197,6 @@ class GameScene extends UIScene
                     {
                         marioInstance.isOnGround = true;
                         blockInstance.onPlayerLand(playerBody, marioInstance);
-
-                        trace("LANDEDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
                     }
                     else if (normalY < -0.5) 
                     {
@@ -243,6 +243,8 @@ class GameScene extends UIScene
 
         //debugText = new Text(G.getFont(), this);
 
+        
+
     }
 
     override function update(dt:Float) 
@@ -258,32 +260,37 @@ class GameScene extends UIScene
         
         var screenWidth = Const.WIDTH;
         var halfScreen = screenWidth * 0.5;
-
+        var cameraX = Math.round(this.camera.x);
+        var cameraY = Math.round(this.camera.y);
+        
         if (mario.body.x > this.camera.x + halfScreen) {
-            this.camera.x = mario.body.x - halfScreen;
-            
+            this.camera.x = Math.round(mario.body.x)  - halfScreen;
         }
         
         if (this.camera.x > levelWidth - screenWidth) {
-            this.camera.x = levelWidth - screenWidth;
+            this.camera.x = Math.round(levelWidth - screenWidth);
         }
 
         this.camera.y = 0;
 
-        var screenLeftBoundary = this.camera.x;
-        if (mario.body.x < screenLeftBoundary) {
+        var screenLeftBoundary = Math.round(this.camera.x);
+        if (Math.round(mario.body.x) < screenLeftBoundary) {
             
             mario.body.x = screenLeftBoundary;
             if (mario.body.velocity.x < 0) 
             {
+            
                mario.body.velocity.x = 0; 
             }
 
         }
         
+        this.topUIFlow.x = Math.round(this.camera.x + (Const.GRID * 1.5));
+
         //debugText.text = 'Player: {${mario.debugInfo()}}';
         //this.debugText.x = this.camera.x + 100;
-        
+        showHitbox = true;
+        showDebugHitbox();
     }
     
     private function showDebugHitbox()

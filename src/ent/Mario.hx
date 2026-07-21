@@ -59,15 +59,13 @@ class Mario extends Entity
             mass: 1,
             shape: {
                 type:RECT,
-                width: Const.GRID-12,
+                width: Const.GRID -4,
                 height: Const.GRID  
             },
             material: {
                 friction: 0,
                 elasticity: 0
-            },
-            drag_x: 0,
-            drag_y: 0
+            }
         });
         
         //hxd.Pad.wait(onPad);
@@ -243,8 +241,16 @@ class Mario extends Entity
 
         body.velocity.x += dir * ACCELERATION_RATE ;
 
-        
-        body.velocity.x = hxd.Math.clamp(body.velocity.x, -targetMaxSpeed, targetMaxSpeed);
+        if(body.velocity.x >= targetMaxSpeed)
+        {
+            body.velocity.x = targetMaxSpeed;
+
+        }
+        if(body.velocity.x <= -targetMaxSpeed)
+        {
+            body.velocity.x = -targetMaxSpeed;
+        }
+        //body.velocity.x = hxd.Math.clamp(body.velocity.x, -targetMaxSpeed, targetMaxSpeed);
         isMoving = true;
         
     }

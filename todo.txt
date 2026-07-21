@@ -1,3 +1,8 @@
 Add enemies movement(Gumba, Beetle)
+Add Pipe into game
 Add Mario main menu screen, game over screen, intro etc
 Add sound
+
+FIX:
+    -Jumping between blocks makes none of them bump,so make the closest bump
+

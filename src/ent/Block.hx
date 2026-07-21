@@ -12,7 +12,16 @@ import h2d.Tile;
 
 class Block extends Entity
 {
+    private var startY:Float;
+    private var bumpTimer:Float = 0;
+    private var isBumping:Bool = false;
+    private var canBump:Bool;
+    private static inline var BUMP_DURATION:Float = 0.12; 
+    private static inline var BUMP_HEIGHT:Float = 6.0;    
+    
     public var type:Dynamic;
+    public var isVisible:Bool;
+    
     private var localTile:Tile;
 
     public var isBreakable:Bool;
@@ -30,7 +39,8 @@ class Block extends Entity
             mass: 0, 
             shape: { type: RECT, width: ldtkData.width, height: ldtkData.height }
         });
-    
+        
+        this.startY = y;
         this.type = ldtkData.f_BlockType;
         
         var typeStr = Type.enumConstructor(this.type);
@@ -78,17 +88,19 @@ class Block extends Entity
 
         if(typeStr == "Wood")
         {
-            this.isBreakable = false; 
+            this.isBreakable = false;
+            this.canBump = true;
             
         }
         else if(typeStr == "Block")
         {
             this.isBreakable = false;
-            
+            this.canBump = true;
         }
         else if(typeStr == "Stone")
         {
             this.isBreakable = false;
+            this.canBump = false;
         }
         else if (typeStr == "EmptyBlock")
         {
@@ -116,26 +128,32 @@ class Block extends Entity
             breakApart();
         }
 
+        if(canBump)
+        {
+            if(!isBumping)
+            {
+                isBumping= true;
+                bumpTimer = 0;   
+            }
+        }
+
         var typeStr = Type.enumConstructor(this.type);
+
 
         if(typeStr=="Block")
         {
-            
-            setupBlock("Stone"); 
-            
-            var enumType = Type.getEnum(this.type);
-            this.type = Type.createEnum(enumType, "Stone");
-
             if (this.sprite != null && blockTiles != null) 
             {
                 var newTile = blockTiles[2].clone();
                 newTile.setCenterRatio(0.5, 0.5); 
                 this.sprite.tile = newTile;
             }
-        }
+
+            setupBlock("Stone"); 
         
-
-
+            var enumType = Type.getEnum(this.type);
+            this.type = Type.createEnum(enumType, "Stone");
+        }
     }
 
     public function breakApart() {
@@ -147,5 +165,28 @@ class Block extends Entity
 
         this.obj.remove();
         this.isDead = true;
+    }
+
+    override function update(dt:Float) {
+        super.update(dt);
+
+        if(isBumping)
+        {
+            bumpTimer += dt;
+            if(bumpTimer >= BUMP_DURATION)
+            {
+                isBumping = false;
+                bumpTimer = 0;
+                this.obj.y = startY;
+            }
+            else 
+            {
+                var progress = bumpTimer / BUMP_DURATION;
+                var offset = Math.sin(progress * Math.PI) * BUMP_HEIGHT;
+                
+                // Subtract offset to move UPwards
+                this.obj.y = startY - offset;
+            }
+        }
     }
 }
